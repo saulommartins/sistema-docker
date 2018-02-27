@@ -1,0 +1,80 @@
+###
+### PHP-FPM 7.1
+###
+FROM centos/httpd:latest
+MAINTAINER "saulommartins" <saulommartins@gmail.com>
+
+
+###
+### Labels
+###
+LABEL \
+    name="saulommartins PHP-FPM 7.1 Image" \
+    image="php-fpm-7.1" \
+    vendor="saulommartins" \
+    license="MIT" \
+    build-date="2018-27-02"
+
+
+
+# Install packages
+
+ENV TZ=America/Sao_Paulo
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN yum -y update && \
+yum install -y http://dl.iuscommunity.org/pub/ius/stable/CentOS/7/x86_64/ius-release-1.0-14.ius.centos7.noarch.rpm && \
+yum -y update && \
+yum -y install php71u php71u-pdo php71u-mysqlnd php71u-opcache php71u-xml php71u-mcrypt php71u-gd php71u-devel php71u-mysql php71u-intl php71u-mbstring php71u-bcmath php71u-json php71u-iconv php71u-soap
+
+
+ENV baseDir /var/www/
+ENV vhostName sistema.test
+
+RUN mkdir ${baseDir}${vhostName}
+RUN mkdir ${baseDir}${vhostName}/logs
+
+
+RUN mkdir /etc/httpd/sites-available
+RUN mkdir /etc/httpd/sites-enabled
+#ADD ./sistema.test.conf /etc/httpd/sites-available/${vhostName}.conf
+
+
+RUN printf "#### $vhostName \n\
+<VirtualHost *:80> \n\
+ServerName ${vhostName} \n\
+ServerAlias ${vhostName} \n\
+DocumentRoot ${baseDir}${vhostName}/public_html \n\
+ErrorLog ${baseDir}${vhostName}/logs/error.log \n\
+CustomLog ${baseDir}${vhostName}/logs/requests.log combined \n\
+<Directory ${baseDir}${vhostName}/public_html> \n\
+Options -Indexes \n\
+Options -ExecCGI -Includes \n\
+LimitRequestBody 204800 \n\
+AllowOverride All \n\
+Order allow,deny \n\
+Allow from all \n\
+Require all granted \n\
+<LimitExcept GET POST HEAD> \n\
+    deny from all \n\
+</LimitExcept> \n\
+<IfModule mod_headers.c> \n\
+    Header set X-XSS-Protection \"1; mode=block\" \n\
+    Header edit Set-Cookie ^(.*)$ $1;HttpOnly;Secure \n\
+</IfModule> \n\
+
+</Directory> \n\
+</VirtualHost>\n" \
+ > /etc/httpd/sites-available/$vhostName.conf
+
+# if a2ensite dosent work - 
+RUN ln -s /etc/httpd/sites-available/${vhostName}.conf /etc/httpd/sites-enabled/${vhostName}.conf
+RUN printf "IncludeOptional sites-enabled/${vhostName}.conf" >> /etc/httpd/conf/httpd.conf
+
+# a2ensite sistema.test.conf
+
+
+EXPOSE 80
+
+WORKDIR /var/www
