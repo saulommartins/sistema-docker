@@ -1,19 +1,29 @@
-version: '3'
+version: '3.4'
 
 services:
+  nginx:
+      image: nginx:latest
+      container_name: nginx
+      ports:
+          - "8081:80"
+      networks:
+          - frontend
+      volumes:
+          - ../www:/var/www/
+          - ./nginx/conf:/etc/nginx/conf.d
+          - ./nginx/logs:/var/log/nginx/
+      depends_on:
+          - app
   app:
-    build:
-      context: ./
-      dockerfile: app.docker
-    volumes:
-      - ../www:/var/www
-    ports:
-      - "8081:80"
-    links:
-      - db
-    environment:
-      - DB_PORT=3306
-      - DB_HOST=db
+      build: ./php
+      container_name: app
+      networks:
+          - backend
+          - frontend
+      volumes:
+          - ./www:/var/www/
+      depends_on:
+          - db
   db:
     image: mysql:5.7
     restart: always
@@ -22,5 +32,12 @@ services:
       - MYSQL_DATABASE=sistema
       - MYSQL_USER=sistema
       - MYSQL_PASSWORD=secret
+    volumes:
+        - ./mysql/data::/var/lib/mysql
     ports:
       - "3306:3306"
+    networks:
+        - backend
+networks:
+    backend:
+    frontend:
