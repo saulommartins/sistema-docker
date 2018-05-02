@@ -33,7 +33,7 @@ services:
       - MYSQL_USER=sistema
       - MYSQL_PASSWORD=secret
     volumes:
-        - ./mysql/data::/var/lib/mysql
+        - ./mysql/data:/var/lib/mysql:rw
     ports:
       - "3306:3306"
     networks:
